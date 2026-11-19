@@ -1,0 +1,33 @@
+# Gradle & Kotlin
+*.iml
+.gradle/
+.kotlin/
+build/
+/build
+app/build/
+.build-outputs/
+
+# IDE & OS
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local config & Secrets
+local.properties
+/local.properties
+.env
+.env.*
+!.env.example
+google-services.json
+
+# Signing Keystores & Credentials (NEVER commit)
+*.jks
+*.keystore
+debug.keystore
+my-upload-key.jks
+release-keystore.jks
+
+# AI Studio temporary prompt attachments
+public/assets/aistudio/

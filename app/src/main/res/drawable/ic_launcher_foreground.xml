@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer architectural chamfered diamond frame in subtle gold -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,24 L84,54 L54,84 L24,54 Z"
+        android:strokeColor="#FFD6C7A3"
+        android:strokeLineJoin="miter"
+        android:strokeWidth="2.5" />
+    <!-- Bold geometric BASLUNE 'B' monogram inside safe zone -->
+    <path
+        android:fillColor="#FFD6C7A3"
+        android:pathData="M41,36 L57,36 C63.5,36 68,39.5 68,45 C68,48.8 65.8,51.8 62.2,53 C66.8,54.3 69.5,57.8 69.5,62.5 C69.5,68.5 64.5,72 57.5,72 L41,72 Z M47.5,41.5 L47.5,50.8 L56,50.8 C59.5,50.8 61.5,49 61.5,46.1 C61.5,43.2 59.5,41.5 56,41.5 Z M47.5,56.2 L47.5,66.5 L57,66.5 C60.8,66.5 63,64.5 63,61.3 C63,58.1 60.8,56.2 57,56.2 Z" />
+    <!-- Subtle warm ivory accent dot -->
+    <path
+        android:fillColor="#FFFAF8F3"
+        android:pathData="M54,28.5 L56.2,30.7 L54,32.9 L51.8,30.7 Z" />
+</vector>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Baslune" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">@color/baslune_espresso</item>
+    </style>
+
+    <style name="Theme.MyApplication" parent="Theme.Baslune" />
+</resources>

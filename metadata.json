@@ -1,0 +1,6 @@
+{
+  "name": "BASLUNE OS",
+  "description": "Business Operating System for BASLUNE Studio — manage clients, projects, tasks, services, sales pipeline, finances, invoices, marketing, documents, knowledge, analytics, team roles, and local backups.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -15,11 +15,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up and verify Android SDK
         shell: bash
@@ -163,6 +163,29 @@ jobs:
 
       - name: Run Unit & Robolectric Tests
         run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Print Test Failure Summary (on failure)
+        if: failure()
+        shell: bash
+        run: |
+          echo "=== Test XML Results ==="
+          for f in app/build/test-results/testDebugUnitTest/TEST-*.xml; do
+            if [ -f "$f" ]; then
+              echo "--- $f ---"
+              cat "$f"
+            fi
+          done
+
+      - name: Upload Test Reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baslune-os-test-reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace

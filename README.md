@@ -72,7 +72,7 @@ It is built natively in **Kotlin + Jetpack Compose (Material Design 3)** with a 
 ## Local Build & Test Setup
 
 ### Prerequisites
-- **JDK 17** (Temurin / OpenJDK 17)
+- **JDK 21** (Temurin / OpenJDK 21 — required for Robolectric Android SDK 36 tests, AGP 9.1.1, and Gradle 9.3.1)
 - **Android SDK** (`compileSdk 36`, Android Build-Tools)
 - **Gradle 9.3.1** (or Android Studio Narwhal+ / Ladybug+ with Gradle 9.3.1)
 

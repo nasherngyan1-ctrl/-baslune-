@@ -29,8 +29,126 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up and verify Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Use a single SDK root and unify ANDROID_HOME / ANDROID_SDK_ROOT to avoid conflicts.
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if [ -n "${ANDROID_HOME:-}" ] && [ -n "${ANDROID_SDK_ROOT:-}" ] && [ "$ANDROID_HOME" != "$ANDROID_SDK_ROOT" ]; then
+            echo "WARNING: ANDROID_HOME ($ANDROID_HOME) differs from ANDROID_SDK_ROOT ($ANDROID_SDK_ROOT); unifying to $SDK_ROOT"
+          fi
+          if [ ! -d "$SDK_ROOT" ]; then
+            echo "ERROR: Android SDK root directory does not exist: $SDK_ROOT" >&2
+            exit 1
+          fi
+
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+
+          # Locate existing cmdline-tools sdkmanager without installing a duplicate SDK.
+          SDKMANAGER=""
+          if [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          else
+            CANDIDATE="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1 || true)"
+            if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
+              SDKMANAGER="$CANDIDATE"
+            elif command -v sdkmanager >/dev/null 2>&1; then
+              SDKMANAGER="$(command -v sdkmanager)"
+            fi
+          fi
+
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "ERROR: Could not locate executable sdkmanager under $SDK_ROOT/cmdline-tools" >&2
+            ls -la "$SDK_ROOT" || true
+            ls -la "$SDK_ROOT/cmdline-tools" 2>/dev/null || true
+            exit 1
+          fi
+
+          CMDLINE_BIN="$(dirname "$SDKMANAGER")"
+          echo "$CMDLINE_BIN" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          export PATH="$CMDLINE_BIN:$SDK_ROOT/platform-tools:$PATH"
+
+          echo "=== Environment Diagnostics ==="
+          echo "JAVA_HOME=${JAVA_HOME:-<unset>}"
+          java -version 2>&1
+          echo "SDK_ROOT=$SDK_ROOT"
+          echo "SDKMANAGER=$SDKMANAGER"
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" --version || true
+
+          print_sdk_diagnostics() {
+            local reason="$1"
+            local log_file="$2"
+            echo "::error::$reason"
+            echo "=== Captured sdkmanager output ==="
+            cat "$log_file" || true
+            echo "=== SDK & Java Environment ==="
+            echo "ANDROID_HOME=$ANDROID_HOME"
+            echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+            echo "JAVA_HOME=${JAVA_HOME:-<unset>}"
+            java -version 2>&1 || true
+            echo "=== Installed SDK directories ==="
+            ls -la "$SDK_ROOT/cmdline-tools" 2>/dev/null || true
+            ls -la "$SDK_ROOT/platforms" 2>/dev/null || true
+            ls -la "$SDK_ROOT/build-tools" 2>/dev/null || true
+            ls -la "$SDK_ROOT/licenses" 2>/dev/null || true
+            echo "=== sdkmanager --list_installed ==="
+            "$SDKMANAGER" --sdk_root="$SDK_ROOT" --list_installed 2>&1 || true
+            echo "=== Matching remote SDK packages (36 / platform-tools) ==="
+            "$SDKMANAGER" --sdk_root="$SDK_ROOT" --list 2>&1 | grep -E "platforms;android-36|build-tools;36|platform-tools" || true
+          }
+
+          LIC_LOG="$(mktemp)"
+          INSTALL_LOG="$(mktemp)"
+          trap 'rm -f "$LIC_LOG" "$INSTALL_LOG"' EXIT
+
+          # Accept Android SDK licenses safely (ignoring SIGPIPE from 'yes').
+          set +e
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >"$LIC_LOG" 2>&1
+          LIC_STATUS=${PIPESTATUS[1]}
+          set -e
+          set -o pipefail
+          cat "$LIC_LOG"
+          if [ "$LIC_STATUS" -ne 0 ]; then
+            print_sdk_diagnostics "sdkmanager --licenses failed with exit code $LIC_STATUS" "$LIC_LOG"
+            exit "$LIC_STATUS"
+          fi
+
+          # Install exact packages matching app/build.gradle.kts (compileSdk 36 minorApiLevel 1) and AGP 9.1.1 (build-tools 36.0.0).
+          set +e
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install \
+            "platform-tools" \
+            "platforms;android-36.1" \
+            "build-tools;36.0.0" >"$INSTALL_LOG" 2>&1
+          INSTALL_STATUS=${PIPESTATUS[1]}
+          set -e
+          set -o pipefail
+          cat "$INSTALL_LOG"
+          if [ "$INSTALL_STATUS" -ne 0 ]; then
+            print_sdk_diagnostics "sdkmanager --install failed with exit code $INSTALL_STATUS" "$INSTALL_LOG"
+            exit "$INSTALL_STATUS"
+          fi
+
+          for required_dir in \
+            "$SDK_ROOT/platform-tools" \
+            "$SDK_ROOT/platforms/android-36.1" \
+            "$SDK_ROOT/build-tools/36.0.0" \
+            "$SDK_ROOT/licenses"; do
+            if [ ! -d "$required_dir" ]; then
+              print_sdk_diagnostics "Required Android SDK directory missing after setup: $required_dir" "$INSTALL_LOG"
+              exit 1
+            fi
+          done
+
+          echo "=== Verified Installed Android SDK Packages ==="
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" --list_installed
 
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
